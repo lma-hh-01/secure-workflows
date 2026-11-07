@@ -159,10 +159,20 @@ jobs:
           version: ${{ env.ZIZMOR_VERSION }}
           advanced-security: false
 
-      - uses: kyverno/action-install-cli@fcee92fca5c883169ef9927acf543e0b5fc58289 # v0.2.0
-        with:
-          release: ${{ env.KYVERNO_VERSION }}
-          verify: true
+      - name: Kyverno CLI installieren und deren Signatur pruefen
+        # kyverno/action-install-cli erwartet .sig und .pem, die Releases liefern
+        # inzwischen nur noch ein Sigstore-Bundle. Deshalb wie bei gitsign von Hand.
+        run: |
+          archive="kyverno-cli_${KYVERNO_VERSION}_linux_x86_64.tar.gz"
+          release="https://github.com/kyverno/kyverno/releases/download/${KYVERNO_VERSION}"
+          curl -fsSL -o "$archive" "$release/$archive"
+          curl -fsSL -o "$archive.sigstore.json" "$release/$archive.sigstore.json"
+          cosign verify-blob --bundle "$archive.sigstore.json" \
+            --certificate-identity "https://github.com/kyverno/kyverno/.github/workflows/release.yaml@refs/tags/${KYVERNO_VERSION}" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            "$archive"
+          tar -xzf "$archive" kyverno
+          sudo install kyverno /usr/local/bin/kyverno
 
       - name: Kubernetes-Manifeste gegen die Richtlinien des Clusters pruefen
         run: kyverno apply "$PLATFORM_DIR/policies/v3/pod-security.yaml" --resource k8s/
