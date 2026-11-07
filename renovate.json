@@ -1,0 +1,6 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Renovate pflegt nur die gehaerteten Workflows von Variante V3. V0 bis V2 bleiben absichtlich ungepinnt.",
+  "extends": ["config:recommended", "helpers:pinGitHubActionDigests", "customManagers:githubActionsVersions"],
+  "includePaths": [".github/workflows/v3.yml", ".github/workflows/v3-rescan.yml", ".github/workflows/lint.yml"]
+}

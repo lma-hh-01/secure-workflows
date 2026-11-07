@@ -1,0 +1,57 @@
+# Variante V3: Mindestanforderungen an die Sicherheitskonfiguration von Pods,
+# angelehnt an das Profil "restricted" der Kubernetes Pod Security Standards.
+# Dieselbe Richtlinie pruefen die Pipeline (Kyverno CLI auf die Manifeste) und
+# der Cluster (Admission), damit beide nach einem Regelwerk entscheiden.
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: pod-security
+spec:
+  validationActions: [Deny]
+  failurePolicy: Fail
+  evaluation:
+    background:
+      enabled: false
+  matchConstraints:
+    namespaceSelector:
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: NotIn
+          values: [kube-system, local-path-storage, kyverno]
+    resourceRules:
+      - apiGroups: ['']
+        apiVersions: ['v1']
+        operations: ['CREATE', 'UPDATE']
+        resources: ['pods']
+  variables:
+    - name: containers
+      expression: >-
+        object.spec.containers
+        + object.spec.?initContainers.orValue([])
+        + object.spec.?ephemeralContainers.orValue([])
+  validations:
+    - expression: >-
+        variables.containers.all(c, !c.?securityContext.?privileged.orValue(false))
+      message: 'Privilegierte Container sind nicht erlaubt'
+    - expression: >-
+        variables.containers.all(c, c.?securityContext.?allowPrivilegeEscalation.orValue(true) == false)
+      message: 'Jeder Container muss allowPrivilegeEscalation: false setzen'
+    - expression: >-
+        variables.containers.all(c,
+          c.?securityContext.?runAsNonRoot.orValue(object.spec.?securityContext.?runAsNonRoot.orValue(false)))
+      message: 'Container muessen mit runAsNonRoot: true laufen'
+    - expression: >-
+        object.spec.?securityContext.?runAsUser.orValue(1) != 0
+        && variables.containers.all(c, c.?securityContext.?runAsUser.orValue(1) != 0)
+      message: 'Container duerfen nicht als root (Benutzer 0) laufen'
+    - expression: >-
+        variables.containers.all(c, c.?securityContext.?capabilities.?drop.orValue([]).exists(d, d == 'ALL'))
+      message: 'Jeder Container muss alle Linux-Capabilities abgeben (drop: [ALL])'
+    - expression: >-
+        !object.spec.?hostNetwork.orValue(false)
+        && !object.spec.?hostPID.orValue(false)
+        && !object.spec.?hostIPC.orValue(false)
+      message: 'Host-Namespaces (Netzwerk, Prozesse, IPC) sind nicht erlaubt'
+    - expression: >-
+        !object.spec.?volumes.orValue([]).exists(v, has(v.hostPath))
+      message: 'hostPath-Volumes sind nicht erlaubt'

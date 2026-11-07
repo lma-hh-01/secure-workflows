@@ -1,0 +1,68 @@
+# Zentraler Workflow fuer Variante V3: wiederholt das Schwachstellen-Gate fuer
+# das zuletzt erfolgreich gebaute Image, ohne neu zu bauen. Neue Schwachstellen
+# werden so auch dann erkannt, wenn sich am Code nichts aendert. Grundlage ist
+# die signierte SBOM aus dem Build, nicht eine neue Analyse des Images.
+# Ein blockierender Befund laesst diesen Lauf fehlschlagen.
+name: v3-rescan
+
+on:
+  workflow_call:
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}-v3
+  # Die SBOM muss vom zentralen V3-Workflow signiert sein.
+  SBOM_SIGNER: https://github.com/${{ github.repository_owner }}/secure-workflows/.github/workflows/v3.yml@refs/heads/main
+  # renovate: datasource=github-releases depName=anchore/grype
+  GRYPE_VERSION: v0.121.2
+  EPSS_THRESHOLD: "0.1"
+  PLATFORM_DIR: platform
+
+jobs:
+  rescan:
+    runs-on: ubuntu-24.04
+    permissions:
+      # Liest die Laeufe des Build-Workflows, um das zuletzt gebaute Image zu finden.
+      actions: read
+    steps:
+      - name: Gate-Skript der Plattform holen
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository_owner }}/secure-workflows
+          ref: main
+          path: ${{ env.PLATFORM_DIR }}
+          persist-credentials: false
+
+      - uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+
+      - name: Signierte SBOM des zuletzt gebauten Images holen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          commit="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow v3.yml --branch main \
+            --status success --limit 1 --json headSha --jq '.[0].headSha')"
+          echo "Image: $IMAGE:$commit"
+          # Bei mehreren Builds desselben Commits liegen mehrere SBOMs am Image, die letzte zaehlt.
+          cosign verify-attestation --type cyclonedx \
+            --certificate-identity "$SBOM_SIGNER" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            "$IMAGE:$commit" > attestations.json
+          tail -n 1 attestations.json | jq -r '.payload' | base64 -d | jq '.predicate' > sbom.cdx.json
+
+      - name: SBOM auf Schwachstellen pruefen (Grype)
+        uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
+        with:
+          sbom: sbom.cdx.json
+          grype-version: ${{ env.GRYPE_VERSION }}
+          output-format: json
+          output-file: grype.json
+          fail-build: false
+
+      - name: Schwachstellen-Gate
+        run: |
+          "$PLATFORM_DIR/scripts/vulnerability-gate.sh" grype.json
