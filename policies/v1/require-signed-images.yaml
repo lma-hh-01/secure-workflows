@@ -1,0 +1,45 @@
+# Variante V1: Pods duerfen nur Images verwenden, die der zentrale Workflow
+# signiert hat, und muessen sie ueber ihren Digest referenzieren.
+# Gilt fuer alle Images aus allen Registries, ausgenommen sind nur die
+# Namespaces des Clusters selbst.
+apiVersion: policies.kyverno.io/v1
+kind: ImageValidatingPolicy
+metadata:
+  name: require-signed-images
+spec:
+  validationActions: [Deny]
+  failurePolicy: Fail
+  webhookConfiguration:
+    timeoutSeconds: 15
+  evaluation:
+    background:
+      enabled: false
+  matchConstraints:
+    namespaceSelector:
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: NotIn
+          values: [kube-system, local-path-storage, kyverno]
+    resourceRules:
+      - apiGroups: ['']
+        apiVersions: ['v1']
+        operations: ['CREATE', 'UPDATE']
+        resources: ['pods']
+  validationConfigurations:
+    # Jedes Image des Pods muss geprueft sein, auch Init-Container.
+    required: true
+    verifyDigest: true
+    mutateDigest: false
+  attestors:
+    - name: pipeline
+      cosign:
+        keyless:
+          identities:
+            - subject: 'https://github.com/lma-hh-01/secure-workflows/.github/workflows/v1.yml@refs/heads/main'
+              issuer: 'https://token.actions.githubusercontent.com'
+        ctlog:
+          url: 'https://rekor.sigstore.dev'
+  validations:
+    - expression: >-
+        images.containers.map(image, verifyImageSignatures(image, [attestors.pipeline])).all(e, e > 0)
+      message: 'Image ist nicht vom zentralen Workflow signiert'
