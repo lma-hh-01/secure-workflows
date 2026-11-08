@@ -1,6 +1,6 @@
 # secure-workflows
 
-Zentrales Repository der „Plattform“ im Testbed zur Masterarbeit *Sicherheit in Software Supply Chains*.
+Zentrales Repository der „Plattform“ im Testbed.
 
 Es enthält
 
