@@ -93,4 +93,14 @@ jobs:
           RENOVATE_ONBOARDING: "false"
           RENOVATE_REQUIRE_CONFIG: required
           LOG_LEVEL: info
-        run: renovate
+        run: |
+          # Renovate gibt Kindprozessen wie git nur ausgewaehlte Variablen weiter.
+          # gitsign braucht diese beiden, um das OIDC-Token des Workflows anzufordern.
+          # Gezielt nur sie freigeben statt exposeAllEnv, das auch das App-Token weitergaebe.
+          echo "::add-mask::$ACTIONS_ID_TOKEN_REQUEST_TOKEN"
+          RENOVATE_CUSTOM_ENV_VARIABLES="$(jq -n \
+            --arg url "$ACTIONS_ID_TOKEN_REQUEST_URL" \
+            --arg token "$ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            '{ACTIONS_ID_TOKEN_REQUEST_URL: $url, ACTIONS_ID_TOKEN_REQUEST_TOKEN: $token}')"
+          export RENOVATE_CUSTOM_ENV_VARIABLES
+          renovate
