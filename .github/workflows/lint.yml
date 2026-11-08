@@ -25,7 +25,7 @@ jobs:
 
       - uses: zizmorcore/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd # v0.8.1
         with:
-          inputs: .github/workflows/v3.yml .github/workflows/v3-rescan.yml .github/workflows/lint.yml
+          inputs: .github/workflows/v3.yml .github/workflows/v3-rescan.yml .github/workflows/lint.yml .github/workflows/renovate.yml
           config: zizmor.yml
           version: ${{ env.ZIZMOR_VERSION }}
           advanced-security: false
