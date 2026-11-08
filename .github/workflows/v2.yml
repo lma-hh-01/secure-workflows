@@ -15,9 +15,12 @@ defaults:
 env:
   IMAGE: ghcr.io/${{ github.repository }}-v2
   GITSIGN_VERSION: 0.18.0
-  # Wer Commits signieren darf (gitsign, Anmeldung ueber GitHub). Mehrere durch Leerzeichen trennen.
-  ALLOWED_SIGNERS: lma-hh-01@mailbox.org
-  SIGNER_ISSUER: https://github.com/login/oauth
+  # Wer Commits signieren darf (gitsign). Eine Zeile je Signierer: E-Mail-Adresse im
+  # Commit, erwartete Identitaet im Zertifikat, Aussteller der Identitaet.
+  # Personen melden sich ueber GitHub an, Renovate signiert ueber seinen Workflow.
+  ALLOWED_SIGNERS: |
+    lma-hh-01@mailbox.org lma-hh-01@mailbox.org https://github.com/login/oauth
+    354102089+lma-hh-01-testbed-renovate[bot]@users.noreply.github.com https://github.com/${{ github.repository_owner }}/secure-workflows/.github/workflows/renovate.yml@refs/heads/main https://token.actions.githubusercontent.com
   # Letzter Commit von example-app vor Einfuehrung der Commit-Signaturen.
   # Geprueft werden nur die Commits danach. Liegt bewusst hier und nicht im
   # Anwendungs-Repository, damit dieses den Anker nicht verschieben kann.
@@ -68,11 +71,9 @@ jobs:
           # erlaubte Person mit gitsign signiert haben.
           curl -fsSL https://github.com/web-flow.gpg | gpg --quiet --import
 
-          is_allowed_signer() {
-            case " $ALLOWED_SIGNERS " in
-              *" $1 "*) return 0 ;;
-              *) return 1 ;;
-            esac
+          # Gibt "<identitaet> <aussteller>" fuer eine erlaubte E-Mail-Adresse aus, sonst nichts.
+          signer_of() {
+            awk -v email="$1" '$1 == email { print $2, $3 }' <<<"$ALLOWED_SIGNERS"
           }
 
           is_merge_on_main_line() {
@@ -89,14 +90,16 @@ jobs:
 
           verify_gitsign_commit() {
             local commit="$1"
-            local author committer
+            local author committer identity issuer
             author="$(git log -1 --format=%ae "$commit")"
             committer="$(git log -1 --format=%ce "$commit")"
+            [ -n "$(signer_of "$author")" ] || return 1
+            read -r identity issuer <<<"$(signer_of "$committer")"
+            [ -n "$identity" ] || return 1
             # gitsign prueft nur das Zertifikat gegen die angegebene Identitaet.
-            # Dass diese zum Commit passt, muss hier geprueft werden.
-            is_allowed_signer "$author" && is_allowed_signer "$committer" &&
-              gitsign verify --certificate-identity "$committer" \
-                --certificate-oidc-issuer "$SIGNER_ISSUER" "$commit" >/dev/null 2>&1
+            # Dass diese zum Committer passt, stellt die Zuordnung oben sicher.
+            gitsign verify --certificate-identity "$identity" \
+              --certificate-oidc-issuer "$issuer" "$commit" >/dev/null 2>&1
           }
 
           if ! git merge-base --is-ancestor "$TRUST_ANCHOR" HEAD; then
