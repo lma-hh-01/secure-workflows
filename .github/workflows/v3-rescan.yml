@@ -25,7 +25,7 @@ env:
 
 jobs:
   rescan:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       # Liest die Laeufe des Build-Workflows, um das zuletzt gebaute Image zu finden.
       actions: read
