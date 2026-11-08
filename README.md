@@ -4,7 +4,7 @@ Zentrales Repository der „Plattform“ im Testbed zur Masterarbeit *Sicherheit
 
 Es enthält
 
-- die wiederverwendbaren GitHub-Workflows, über die Anwendungs-Repositories ab Variante V1 bauen, signieren und attestieren (`.github/workflows/`),
+- die wiederverwendbaren GitHub-Workflows, über die Anwendungs-Repositories ab Variante V2 bauen, signieren und attestieren (V1 baut und signiert noch im Anwendungs-Repository selbst) (`.github/workflows/`),
 - die Kyverno-Richtlinien, die an der Admission im Cluster und ab V3 bereits in der Pipeline geprüft werden (`policies/`),
 - das Schwachstellen-Gate für V3 (`scripts/vulnerability-gate.sh`), das beim Build und bei der täglichen Wiederholung dieselbe Regel anwendet,
 - die Konfiguration von zizmor (`zizmor.yml`) und Renovate (`renovate.json`) für die gehärteten Workflows von V3.
