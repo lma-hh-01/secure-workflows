@@ -40,7 +40,7 @@ env:
   # renovate: datasource=github-releases depName=anchore/syft
   SYFT_VERSION: v1.57.0
   # renovate: datasource=github-releases depName=anchore/grype
-  GRYPE_VERSION: v0.121.2
+  GRYPE_VERSION: v0.121.3
   # Ab diesem EPSS-Wert blockiert das Schwachstellen-Gate (siehe scripts/vulnerability-gate.sh).
   EPSS_THRESHOLD: "0.1"
   # Richtlinien, Gate-Skript und zizmor-Konfiguration kommen aus diesem Repository.
