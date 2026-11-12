@@ -34,7 +34,7 @@ env:
   # (https://github.com/web-flow.gpg).
   WEB_FLOW_FINGERPRINT: 968479A1AFF927E37D1A566BB5690EEEBB952194
   # renovate: datasource=github-releases depName=kyverno/kyverno
-  KYVERNO_VERSION: v1.19.2
+  KYVERNO_VERSION: v1.20.0
   # renovate: datasource=pypi depName=zizmor
   ZIZMOR_VERSION: 1.32.0
   # renovate: datasource=github-releases depName=anchore/syft
