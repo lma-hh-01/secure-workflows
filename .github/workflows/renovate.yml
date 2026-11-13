@@ -20,7 +20,7 @@ env:
   # renovate: datasource=github-releases depName=sigstore/gitsign extractVersion=^v(?<version>.*)$
   GITSIGN_VERSION: 0.18.0
   # renovate: datasource=npm depName=renovate
-  RENOVATE_PACKAGE_VERSION: 44.222.4
+  RENOVATE_PACKAGE_VERSION: 44.239.1
 
 jobs:
   renovate:
