@@ -24,7 +24,7 @@ env:
   # Letzter Commit von example-app vor Einfuehrung der Commit-Signaturen.
   # Geprueft werden nur die Commits danach. Liegt bewusst hier und nicht im
   # Anwendungs-Repository, damit dieses den Anker nicht verschieben kann.
-  TRUST_ANCHOR: 439617b08d9a089ba10396bd57782087e1abd134
+  TRUST_ANCHOR: 469390f0f078d28ba83f7c69c3ee23cbc627d04e
   # Schluessel, mit dem GitHub die Merge-Commits von Pull Requests signiert
   # (https://github.com/web-flow.gpg).
   WEB_FLOW_FINGERPRINT: 968479A1AFF927E37D1A566BB5690EEEBB952194
