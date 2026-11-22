@@ -1,7 +1,7 @@
-# Variante V3: Mindestanforderungen an die Sicherheitskonfiguration von Pods,
-# angelehnt an das Profil "restricted" der Kubernetes Pod Security Standards.
-# Dieselbe Richtlinie pruefen die Pipeline (Kyverno CLI auf die Manifeste) und
-# der Cluster (Admission), damit beide nach einem Regelwerk entscheiden.
+# Variant V3: minimum requirements for the security configuration of pods,
+# based on the "restricted" profile of the Kubernetes Pod Security Standards.
+# The pipeline (Kyverno CLI on the manifests) and the cluster (admission) check
+# the same policy, so that both decide by one set of rules.
 apiVersion: policies.kyverno.io/v1
 kind: ValidatingPolicy
 metadata:
@@ -32,26 +32,26 @@ spec:
   validations:
     - expression: >-
         variables.containers.all(c, !c.?securityContext.?privileged.orValue(false))
-      message: 'Privilegierte Container sind nicht erlaubt'
+      message: 'Privileged containers are not allowed'
     - expression: >-
         variables.containers.all(c, c.?securityContext.?allowPrivilegeEscalation.orValue(true) == false)
-      message: 'Jeder Container muss allowPrivilegeEscalation: false setzen'
+      message: 'Every container must set allowPrivilegeEscalation: false'
     - expression: >-
         variables.containers.all(c,
           c.?securityContext.?runAsNonRoot.orValue(object.spec.?securityContext.?runAsNonRoot.orValue(false)))
-      message: 'Container muessen mit runAsNonRoot: true laufen'
+      message: 'Containers must run with runAsNonRoot: true'
     - expression: >-
         object.spec.?securityContext.?runAsUser.orValue(1) != 0
         && variables.containers.all(c, c.?securityContext.?runAsUser.orValue(1) != 0)
-      message: 'Container duerfen nicht als root (Benutzer 0) laufen'
+      message: 'Containers must not run as root (user 0)'
     - expression: >-
         variables.containers.all(c, c.?securityContext.?capabilities.?drop.orValue([]).exists(d, d == 'ALL'))
-      message: 'Jeder Container muss alle Linux-Capabilities abgeben (drop: [ALL])'
+      message: 'Every container must drop all Linux capabilities (drop: [ALL])'
     - expression: >-
         !object.spec.?hostNetwork.orValue(false)
         && !object.spec.?hostPID.orValue(false)
         && !object.spec.?hostIPC.orValue(false)
-      message: 'Host-Namespaces (Netzwerk, Prozesse, IPC) sind nicht erlaubt'
+      message: 'Host namespaces (network, PID, IPC) are not allowed'
     - expression: >-
         !object.spec.?volumes.orValue([]).exists(v, has(v.hostPath))
-      message: 'hostPath-Volumes sind nicht erlaubt'
+      message: 'hostPath volumes are not allowed'

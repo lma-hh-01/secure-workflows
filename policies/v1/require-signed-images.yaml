@@ -1,7 +1,7 @@
-# Variante V1: Pods duerfen nur Images verwenden, die der V1-Workflow von
-# example-app signiert hat, und muessen sie ueber ihren Digest referenzieren.
-# Gilt fuer alle Images aus allen Registries, ausgenommen sind nur die
-# Namespaces des Clusters selbst.
+# Variant V1: pods may only use images signed by the V1 workflow of
+# example-app and must reference them by their digest.
+# Applies to all images from all registries, only the namespaces of the
+# cluster itself are excluded.
 apiVersion: policies.kyverno.io/v1
 kind: ImageValidatingPolicy
 metadata:
@@ -26,7 +26,7 @@ spec:
         operations: ['CREATE', 'UPDATE']
         resources: ['pods']
   validationConfigurations:
-    # Jedes Image des Pods muss geprueft sein, auch Init-Container.
+    # Every image of the pod must be verified, including init containers.
     required: true
     verifyDigest: true
     mutateDigest: false
@@ -42,4 +42,4 @@ spec:
   validations:
     - expression: >-
         images.containers.map(image, verifyImageSignatures(image, [attestors.pipeline])).all(e, e > 0)
-      message: 'Image ist nicht vom V1-Workflow von example-app signiert'
+      message: 'Image is not signed by the V1 workflow of example-app'

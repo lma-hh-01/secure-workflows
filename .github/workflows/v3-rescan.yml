@@ -1,8 +1,8 @@
-# Zentraler Workflow fuer Variante V3: wiederholt das Schwachstellen-Gate fuer
-# das zuletzt erfolgreich gebaute Image, ohne neu zu bauen. Neue Schwachstellen
-# werden so auch dann erkannt, wenn sich am Code nichts aendert. Grundlage ist
-# die signierte SBOM aus dem Build, nicht eine neue Analyse des Images.
-# Ein blockierender Befund laesst diesen Lauf fehlschlagen.
+# Central workflow for variant V3: repeats the vulnerability gate for the most
+# recently built image without rebuilding it. This way new vulnerabilities are
+# detected even when the code does not change. It is based on the signed SBOM
+# from the build, not on a new analysis of the image.
+# A blocking finding makes this run fail.
 name: v3-rescan
 
 on:
@@ -16,7 +16,7 @@ defaults:
 
 env:
   IMAGE: ghcr.io/${{ github.repository }}-v3
-  # Die SBOM muss vom zentralen V3-Workflow signiert sein.
+  # The SBOM must be signed by the central V3 workflow.
   SBOM_SIGNER: https://github.com/${{ github.repository_owner }}/secure-workflows/.github/workflows/v3.yml@refs/heads/main
   # renovate: datasource=github-releases depName=anchore/grype
   GRYPE_VERSION: v0.121.2
@@ -27,10 +27,10 @@ jobs:
   rescan:
     runs-on: ubuntu-24.04
     permissions:
-      # Liest die Laeufe des Build-Workflows, um das zuletzt gebaute Image zu finden.
+      # Reads the runs of the build workflow to find the most recently built image.
       actions: read
     steps:
-      - name: Gate-Skript der Plattform holen
+      - name: Fetch the gate script of the platform
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ github.repository_owner }}/secure-workflows
@@ -40,21 +40,21 @@ jobs:
 
       - uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
 
-      - name: Signierte SBOM des zuletzt gebauten Images holen
+      - name: Fetch the signed SBOM of the most recently built image
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           commit="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow v3.yml --branch main \
             --status success --limit 1 --json headSha --jq '.[0].headSha')"
           echo "Image: $IMAGE:$commit"
-          # Bei mehreren Builds desselben Commits liegen mehrere SBOMs am Image, die letzte zaehlt.
+          # Several builds of the same commit leave several SBOMs on the image, the last one counts.
           cosign verify-attestation --type cyclonedx \
             --certificate-identity "$SBOM_SIGNER" \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
             "$IMAGE:$commit" > attestations.json
           tail -n 1 attestations.json | jq -r '.payload' | base64 -d | jq '.predicate' > sbom.cdx.json
 
-      - name: SBOM auf Schwachstellen pruefen (Grype)
+      - name: Scan SBOM for vulnerabilities (Grype)
         uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
         with:
           sbom: sbom.cdx.json
@@ -63,6 +63,6 @@ jobs:
           output-file: grype.json
           fail-build: false
 
-      - name: Schwachstellen-Gate
+      - name: Vulnerability gate
         run: |
           "$PLATFORM_DIR/scripts/vulnerability-gate.sh" grype.json

@@ -1,5 +1,5 @@
-# Prueft die gehaerteten Workflows dieses Repositories (Variante V3) mit zizmor.
-# Die Workflows von V0 bis V2 sind absichtlich nicht gehaertet und werden nicht geprueft.
+# Checks the hardened workflows of this repository (variant V3) with zizmor.
+# The workflows of V0 to V2 are deliberately not hardened and are not checked.
 name: lint
 
 on:
