@@ -19,7 +19,7 @@ env:
   # The SBOM must be signed by the central V3 workflow.
   SBOM_SIGNER: https://github.com/${{ github.repository_owner }}/secure-workflows/.github/workflows/v3.yml@refs/heads/main
   # renovate: datasource=github-releases depName=anchore/grype
-  GRYPE_VERSION: v0.121.2
+  GRYPE_VERSION: v0.122.1
   EPSS_THRESHOLD: "0.1"
   PLATFORM_DIR: platform
 
