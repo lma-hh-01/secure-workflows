@@ -1,10 +1,10 @@
-# Konfiguration fuer zizmor (Pruefung von GitHub-Workflows) ab Variante V3.
+# Configuration for zizmor (checks of GitHub workflows) from variant V3 on.
 rules:
   unpinned-uses:
     config:
       policies:
-        # Den zentralen Workflow rufen Anwendungs-Repositories bewusst ueber @main auf:
-        # Kyverno prueft dessen Identitaet samt refs/heads/main. Ein Pin auf einen
-        # Commit wuerde dem Anwendungs-Repository die Wahl einer alten Version lassen.
+        # Application repositories deliberately call the central workflow via @main:
+        # Kyverno checks its identity including refs/heads/main. Pinning a commit
+        # would let the application repository choose an old version.
         "lma-hh-01/secure-workflows/*": ref-pin
         "*": hash-pin

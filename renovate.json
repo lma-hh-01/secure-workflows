@@ -1,6 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "description": "Renovate pflegt nur die gehaerteten Workflows von Variante V3. V0 bis V2 bleiben absichtlich ungepinnt.",
+  "description": "Renovate only maintains the hardened workflows of variant V3. V0 to V2 deliberately stay unpinned.",
   "extends": [
     "config:recommended",
     "helpers:pinGitHubActionDigests",
@@ -14,7 +14,7 @@
   ],
   "packageRules": [
     {
-      "description": "Das Runner-Image bleibt fest auf ubuntu-24.04, damit Build-Zeiten zwischen den Varianten vergleichbar bleiben.",
+      "description": "The runner image stays fixed at ubuntu-24.04 so that build times remain comparable between the variants.",
       "matchDatasources": [
         "github-runners"
       ],

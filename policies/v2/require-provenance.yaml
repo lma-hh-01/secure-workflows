@@ -1,8 +1,8 @@
-# Variante V2: wie V1, zusaetzlich muss eine Provenance (Herkunftsnachweis nach
-# SLSA) des zentralen Workflows vorliegen. Sie muss belegen, dass das Image aus
-# example-app, vom Branch main und durch einen Push gebaut wurde. Der zentrale
-# Workflow kann von jedem Repository aufgerufen werden, deshalb reicht seine
-# Identitaet allein nicht.
+# Variant V2: like V1, and additionally a provenance (build origin attestation
+# according to SLSA) of the central workflow must be present. It must prove that
+# the image was built from example-app, from branch main and by a push. Any
+# repository can call the central workflow, so its identity alone is not
+# enough.
 apiVersion: policies.kyverno.io/v1
 kind: ImageValidatingPolicy
 metadata:
@@ -27,7 +27,7 @@ spec:
         operations: ['CREATE', 'UPDATE']
         resources: ['pods']
   validationConfigurations:
-    # Jedes Image des Pods muss geprueft sein, auch Init-Container.
+    # Every image of the pod must be verified, including init containers.
     required: true
     verifyDigest: true
     mutateDigest: false
@@ -50,22 +50,22 @@ spec:
   validations:
     - expression: >-
         images.containers.map(image, verifyImageSignatures(image, [attestors.pipeline])).all(e, e > 0)
-      message: 'Image ist nicht vom zentralen Workflow signiert'
+      message: 'Image is not signed by the central workflow'
     - expression: >-
         images.containers.map(image, verifyAttestationSignatures(image, attestations.provenance, [attestors.pipeline])).all(e, e > 0)
-      message: 'Provenance fehlt oder ist nicht vom zentralen Workflow signiert'
+      message: 'Provenance is missing or not signed by the central workflow'
     - expression: >-
         images.containers.map(image,
           extractPayload(image, attestations.provenance).predicate.buildDefinition.externalParameters.workflow.repository == variables.expectedRepository
         ).all(e, e)
-      message: 'Provenance: Image stammt nicht aus example-app'
+      message: 'Provenance: image was not built from example-app'
     - expression: >-
         images.containers.map(image,
           extractPayload(image, attestations.provenance).predicate.buildDefinition.externalParameters.workflow.ref == 'refs/heads/main'
         ).all(e, e)
-      message: 'Provenance: Image wurde nicht vom Branch main gebaut'
+      message: 'Provenance: image was not built from branch main'
     - expression: >-
         images.containers.map(image,
           extractPayload(image, attestations.provenance).predicate.buildDefinition.internalParameters.github.event_name == 'push'
         ).all(e, e)
-      message: 'Provenance: Build wurde nicht durch einen Push ausgeloest'
+      message: 'Provenance: build was not triggered by a push'

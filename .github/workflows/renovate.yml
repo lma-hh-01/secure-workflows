@@ -1,8 +1,8 @@
-# Renovate als Workflow der Plattform: haelt die gepinnten Abhaengigkeiten von V3
-# in example-app und secure-workflows aktuell und oeffnet dafuer Pull Requests.
-# Renovate laeuft bewusst hier und nicht als fertige App eines Anbieters: Seine
-# Commits werden mit gitsign ueber die Identitaet dieses Workflows signiert und
-# bestehen damit die Commit-Pruefung der zentralen Workflows ab V1.
+# Renovate as a workflow of the platform: keeps the pinned dependencies of V3
+# in example-app and secure-workflows up to date and opens pull requests for them.
+# Renovate deliberately runs here and not as a vendor's ready-made app: its
+# commits are signed with gitsign via the identity of this workflow and thus
+# pass the commit verification of the central workflows from V1 on.
 name: renovate
 
 on:
@@ -26,10 +26,10 @@ jobs:
   renovate:
     runs-on: ubuntu-24.04
     permissions:
-      # gitsign signiert die Commits mit dem OIDC-Token dieses Workflows.
+      # gitsign signs the commits with the OIDC token of this workflow.
       id-token: write
     steps:
-      - name: Zugangstoken der Renovate-App holen (gilt eine Stunde)
+      - name: Fetch an access token of the Renovate app (valid for one hour)
         id: app-token
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
@@ -37,7 +37,7 @@ jobs:
           private-key: ${{ secrets.RENOVATE_APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
           repositories: example-app,secure-workflows
-          # Nur die Rechte, die Renovate laut Doku braucht, nicht alle der Installation.
+          # Only the permissions Renovate needs according to its docs, not all of the installation.
           permission-administration: read
           permission-checks: write
           permission-contents: write
@@ -50,7 +50,7 @@ jobs:
 
       - uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
 
-      - name: gitsign installieren und dessen Signatur pruefen
+      - name: Install gitsign and verify its signature
         run: |
           binary="gitsign_${GITSIGN_VERSION}_linux_amd64"
           release="https://github.com/sigstore/gitsign/releases/download/v${GITSIGN_VERSION}"
@@ -62,7 +62,7 @@ jobs:
             "$binary"
           sudo install "$binary" /usr/local/bin/gitsign
 
-      - name: Git so einrichten, dass jeder Commit mit gitsign signiert wird
+      - name: Configure Git to sign every commit with gitsign
         run: |
           git config --global gpg.format x509
           git config --global gpg.x509.program gitsign
@@ -72,7 +72,7 @@ jobs:
         with:
           node-version: 24
 
-      - name: Renovate installieren und dessen Herkunft pruefen
+      - name: Install Renovate and verify its provenance
         run: |
           mkdir -p "$RUNNER_TEMP/renovate"
           cd "$RUNNER_TEMP/renovate"
@@ -81,22 +81,22 @@ jobs:
           npm audit signatures
           echo "$RUNNER_TEMP/renovate/node_modules/.bin" >> "$GITHUB_PATH"
 
-      - name: Renovate ausfuehren
+      - name: Run Renovate
         env:
           RENOVATE_TOKEN: ${{ steps.app-token.outputs.token }}
           RENOVATE_PLATFORM: github
           RENOVATE_REPOSITORIES: '["${{ github.repository_owner }}/example-app", "${{ github.repository_owner }}/secure-workflows"]'
-          # Mit Git committen statt ueber die GitHub-API. Ueber die API signiert GitHub
-          # selbst, und diese Signatur unterscheidet den Bot nicht von einer Person.
+          # Commit with Git instead of via the GitHub API. Via the API GitHub signs
+          # the commit itself, and that signature does not distinguish the bot from a person.
           RENOVATE_PLATFORM_COMMIT: disabled
-          # Beide Repositories bringen ihre renovate.json mit, kein Onboarding-PR.
+          # Both repositories ship their own renovate.json, no onboarding PR.
           RENOVATE_ONBOARDING: "false"
           RENOVATE_REQUIRE_CONFIG: required
           LOG_LEVEL: info
         run: |
-          # Renovate gibt Kindprozessen wie git nur ausgewaehlte Variablen weiter.
-          # gitsign braucht diese beiden, um das OIDC-Token des Workflows anzufordern.
-          # Gezielt nur sie freigeben statt exposeAllEnv, das auch das App-Token weitergaebe.
+          # Renovate passes only selected variables on to child processes such as git.
+          # gitsign needs these two to request the OIDC token of the workflow.
+          # Allow exactly these instead of exposeAllEnv, which would also pass on the app token.
           echo "::add-mask::$ACTIONS_ID_TOKEN_REQUEST_TOKEN"
           RENOVATE_CUSTOM_ENV_VARIABLES="$(jq -n \
             --arg url "$ACTIONS_ID_TOKEN_REQUEST_URL" \

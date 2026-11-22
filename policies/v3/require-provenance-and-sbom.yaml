@@ -1,8 +1,8 @@
-# Variante V3: wie V2 (Signatur und Provenance des zentralen Workflows, Herkunft
-# aus example-app, Branch main, Ausloesung per Push), zusaetzlich muss eine vom
-# zentralen Workflow signierte SBOM (CycloneDX) am Image haengen. Sie belegt,
-# dass das Image das Schwachstellen-Gate durchlaufen hat, und ist die Grundlage
-# fuer die taegliche Wiederholung der Auswertung.
+# Variant V3: like V2 (signature and provenance of the central workflow, built
+# from example-app, branch main, triggered by a push), and additionally an SBOM
+# (CycloneDX) signed by the central workflow must be attached to the image. It
+# proves that the image has passed the vulnerability gate and is the basis for
+# the daily repetition of the scan.
 apiVersion: policies.kyverno.io/v1
 kind: ImageValidatingPolicy
 metadata:
@@ -27,7 +27,7 @@ spec:
         operations: ['CREATE', 'UPDATE']
         resources: ['pods']
   validationConfigurations:
-    # Jedes Image des Pods muss geprueft sein, auch Init-Container.
+    # Every image of the pod must be verified, including init containers.
     required: true
     verifyDigest: true
     mutateDigest: false
@@ -53,25 +53,25 @@ spec:
   validations:
     - expression: >-
         images.containers.map(image, verifyImageSignatures(image, [attestors.pipeline])).all(e, e > 0)
-      message: 'Image ist nicht vom zentralen Workflow signiert'
+      message: 'Image is not signed by the central workflow'
     - expression: >-
         images.containers.map(image, verifyAttestationSignatures(image, attestations.provenance, [attestors.pipeline])).all(e, e > 0)
-      message: 'Provenance fehlt oder ist nicht vom zentralen Workflow signiert'
+      message: 'Provenance is missing or not signed by the central workflow'
     - expression: >-
         images.containers.map(image, verifyAttestationSignatures(image, attestations.sbom, [attestors.pipeline])).all(e, e > 0)
-      message: 'SBOM fehlt oder ist nicht vom zentralen Workflow signiert'
+      message: 'SBOM is missing or not signed by the central workflow'
     - expression: >-
         images.containers.map(image,
           extractPayload(image, attestations.provenance).predicate.buildDefinition.externalParameters.workflow.repository == variables.expectedRepository
         ).all(e, e)
-      message: 'Provenance: Image stammt nicht aus example-app'
+      message: 'Provenance: image was not built from example-app'
     - expression: >-
         images.containers.map(image,
           extractPayload(image, attestations.provenance).predicate.buildDefinition.externalParameters.workflow.ref == 'refs/heads/main'
         ).all(e, e)
-      message: 'Provenance: Image wurde nicht vom Branch main gebaut'
+      message: 'Provenance: image was not built from branch main'
     - expression: >-
         images.containers.map(image,
           extractPayload(image, attestations.provenance).predicate.buildDefinition.internalParameters.github.event_name == 'push'
         ).all(e, e)
-      message: 'Provenance: Build wurde nicht durch einen Push ausgeloest'
+      message: 'Provenance: build was not triggered by a push'
