@@ -36,7 +36,7 @@ env:
   # renovate: datasource=github-releases depName=kyverno/kyverno
   KYVERNO_VERSION: v1.19.2
   # renovate: datasource=pypi depName=zizmor
-  ZIZMOR_VERSION: 1.32.0
+  ZIZMOR_VERSION: 1.33.1
   # renovate: datasource=github-releases depName=anchore/syft
   SYFT_VERSION: v1.57.0
   # renovate: datasource=github-releases depName=anchore/grype
